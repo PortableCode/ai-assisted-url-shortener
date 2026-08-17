@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Java / Maven
+target/
+*.log
+
+# Frontend
+node_modules/
+dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
