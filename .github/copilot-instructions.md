@@ -9,7 +9,7 @@ maintainability, testing, and final approval. AI assists within scoped tasks.
 ## Backend
 
 - Java 17
-- Spring Boot 3.5.x
+- Spring Boot 4.0.x
 - Maven
 - PostgreSQL
 - Spring Data JPA / Hibernate
