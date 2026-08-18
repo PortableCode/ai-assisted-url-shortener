@@ -508,3 +508,47 @@ Rejected:
 
 ### Engineer sign-off
 Approved.
+
+---
+
+## AI-012 — React + TypeScript Frontend Implementation
+
+### Intent
+Implement the evaluator-facing React + TypeScript frontend for the completed URL shortener backend.
+
+### Context
+The backend APIs were already complete and validated. The frontend needed to stay simple, professional, and dependency-light while supporting create, metadata lookup, analytics, delete, copy-to-clipboard, and Vite-based local development against the backend.
+
+### AI contribution
+Copilot reviewed the scaffolded Vite project, proposed the smallest component and API-client structure, implemented the single-page UI, added proxy/base-URL configuration, handled backend ProblemDetail responses, and fixed build/lint issues surfaced during validation.
+
+### Engineer decisions
+
+Accepted:
+- small Axios client layer
+- Vite proxy for `/api` to `http://localhost:8080`
+- one shared short-code input for lookup and analytics
+- simple CSS and no router/state library
+- copy-to-clipboard and delete confirmation via `window.confirm`
+
+Modified:
+- adjusted the state flow so delete acts on the currently loaded link
+- kept the component count small and avoided extra abstractions
+
+Rejected:
+- React Router
+- Redux
+- UI frameworks
+- React Query
+- hardcoded backend URLs throughout the components
+
+### Validation
+- `npm run build` → passed
+- `npm run lint` → passed
+- manual UI flow covered create, lookup, analytics, copy, and delete interactions
+
+### Engineer sign-off
+Approved.
+
+---
+
