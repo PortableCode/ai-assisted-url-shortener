@@ -552,3 +552,37 @@ Approved.
 
 ---
 
+## AI-013 — Remove Redundant Context-Load Test
+
+### Intent
+Fix the CI blocker that caused `./mvnw clean test` to depend on a local PostgreSQL instance.
+
+### Context
+A generated `UrlShortenerApplicationTests` class was present as a plain `@SpringBootTest` without Testcontainers wiring. On a clean machine and in GitHub Actions, that test tried to connect to `localhost:5432` and failed even though other integration tests already proved application startup with PostgreSQL Testcontainers.
+
+### AI contribution
+Copilot inspected the existing Testcontainers-backed `@SpringBootTest` coverage, identified the generated `contextLoads()` test as redundant, and removed it instead of adding another database setup path.
+
+### Engineer decisions
+
+Accepted:
+- delete the redundant generated context-load test
+- rely on existing `@SpringBootTest + PostgreSQL Testcontainers` tests for application startup coverage
+
+Modified:
+- removed the localhost-bound test instead of weakening datasource defaults or adding H2
+
+Rejected:
+- adding a PostgreSQL service to CI
+- introducing H2
+- changing production datasource behavior
+- adding another special test-only database configuration
+
+### Validation
+- `./mvnw clean test` → BUILD SUCCESS after the deletion
+
+### Engineer sign-off
+Approved.
+
+---
+
