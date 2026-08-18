@@ -101,3 +101,50 @@ Requirements, architecture, and execution-plan documents were manually cross-che
 
 ### Engineer sign-off
 Approved.
+
+---
+
+## AI-003 — Persistence / Domain Baseline
+
+### Tool
+GitHub Copilot Chat
+
+### Intent
+Design and implement the initial persistence/domain layer for the V1 schema.
+
+### Context
+Greenfield baseline only: JPA `Link` entity, `LinkRepository`, and `ShortCodeGenerator` against the existing Flyway V1 table.
+
+### AI contribution
+Copilot proposed the minimal file set, JPA mappings, `Instant` usage for TIMESTAMPTZ fields, a concrete `ShortCodeGenerator` using `SecureRandom`, and a focused generator test.
+
+### Engineer decisions
+
+Accepted:
+- `Link` mapped directly to the existing `links` table
+- `GenerationType.IDENTITY` for the V1 `BIGSERIAL` primary key
+- `Instant` for timestamp columns
+- Minimal `LinkRepository` with short-code lookup
+- Concrete `ShortCodeGenerator` with a fixed Base62 alphabet
+- Focused generator test for length and character set
+
+Modified:
+- Removed silent trimming from the entity; URL normalization will happen explicitly at the application boundary
+- Deferred a repository integration test until Testcontainers is introduced so tests are not coupled to a locally running Compose database
+
+Rejected:
+- No collision database lookup inside `ShortCodeGenerator`
+- No service/controller/DTO implementation yet
+- No expiration or soft deletion
+- Collision retry logic
+- Additional repository methods not needed for current lookup requirements
+- Interface/implementation pairs
+
+### Rationale
+The baseline needed only enough structure to match the V1 schema cleanly and support the next application-layer step later, without introducing premature abstractions.
+
+### Validation
+`./mvnw clean test` → BUILD SUCCESS
+
+### Engineer sign-off
+Approved.
