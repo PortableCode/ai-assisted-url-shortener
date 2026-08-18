@@ -46,7 +46,8 @@ docker compose up --build
 | `GET` | `/{shortCode}` | Redirect to the destination |
 
 The create endpoint accepts `originalUrl` and optional `expiresAt`. It is
-limited to 20 requests per remote address per 60-second fixed window.
+limited to 20 requests per remote address per 60-second fixed window. Short
+URLs are host-aware: requests through the frontend proxy return `http://localhost/{shortCode}`, while direct backend requests on `:8080` return `http://localhost:8080/{shortCode}`.
 
 ## Architecture
 
