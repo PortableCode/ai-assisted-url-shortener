@@ -274,3 +274,49 @@ The feature stays intentionally small while still enforcing valid HTTP(S) URLs, 
 Approved.
 
 ---
+
+## AI-007 — Redirect + Aggregate Analytics
+
+### Tool
+GitHub Copilot Chat
+
+### Intent
+Implement the greenfield redirect flow for `GET /{shortCode}`.
+
+### Context
+Redirect and aggregate analytics on top of the existing Link entity and repository.
+
+### AI contribution
+Copilot proposed the redirect controller/service split, atomic database-side click updates, and a Testcontainers concurrency test.
+
+### Engineer decisions
+
+Accepted:
+- Separate redirect controller/service
+- `302 Found`
+- Database-side atomic click increment
+- `last_accessed_at` update
+- Service-level transaction
+- Affected-row check for lookup/delete race
+- Testcontainers concurrency verification
+
+Accepted trade-off:
+- Short-code format enforced both by route regex and service validation
+- Concurrency test validates final aggregate count rather than transaction ordering internals
+
+Rejected:
+- Java-side read → increment → save
+- Redis/Kafka/event analytics
+- Expiration in the greenfield redirect flow
+
+### Rationale
+The redirect path needs to preserve click counts under concurrency without introducing a read-modify-write race in Java, while still keeping the implementation small and consistent with the current greenfield scope.
+
+### Validation
+- Focused tests → BUILD SUCCESS
+- `./mvnw clean test` → BUILD SUCCESS
+
+### Engineer sign-off
+Approved.
+
+---
