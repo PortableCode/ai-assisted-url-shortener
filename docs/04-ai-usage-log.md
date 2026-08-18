@@ -586,3 +586,45 @@ Approved.
 
 ---
 
+## AI-014 — Docker/CI Packaging Path
+
+### Intent
+Analyze, implement, and validate the Docker/CI packaging path for the full-stack app.
+
+### Context
+The repository needed clean-clone evaluator usability: `docker compose up --build`, backend and frontend containers, plus GitHub Actions coverage that did not depend on a local PostgreSQL instance.
+
+### AI contribution
+Copilot analyzed the Docker and CI architecture, implemented the backend/frontend Dockerfiles, Nginx proxying, Compose wiring, and CI workflow, then helped diagnose the remaining CI blocker caused by the generated localhost-bound `UrlShortenerApplicationTests`.
+
+### Engineer decisions
+
+Accepted:
+- multi-stage backend and frontend images
+- Nginx serving the frontend with `/api` and root short-code proxying
+- env-based datasource config plus forwarded headers
+- GitHub Actions backend/frontend split
+- deleting the redundant generated context-load test
+
+Modified:
+- kept Compose and CI intentionally simple
+- validated the backend suite after stopping the temporary PostgreSQL container
+
+Rejected:
+- Kubernetes
+- registry publishing
+- extra deployment automation
+- H2
+- adding a PostgreSQL service to CI
+
+### Validation
+- `docker compose config` → passed
+- `docker compose up --build` → app stack started
+- `./mvnw clean test` → BUILD SUCCESS after removing the generated test and stopping the temporary local PostgreSQL container
+- Compose endpoints verified through the frontend and backend
+
+### Engineer sign-off
+Approved.
+
+---
+
