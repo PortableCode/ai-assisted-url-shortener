@@ -33,6 +33,7 @@ public class LinkController {
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Short link created"),
             @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "429", description = "Too many create requests"),
             @ApiResponse(responseCode = "500", description = "Short-code generation failed")
     })
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)

@@ -4,6 +4,7 @@ import com.vishnu.urlshortener.link.application.InvalidOriginalUrlException;
 import com.vishnu.urlshortener.link.application.InvalidExpirationException;
 import com.vishnu.urlshortener.link.application.LinkExpiredException;
 import com.vishnu.urlshortener.link.application.LinkNotFoundException;
+import com.vishnu.urlshortener.link.application.RateLimitExceededException;
 import com.vishnu.urlshortener.link.application.ShortCodeGenerationException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -64,6 +65,16 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Internal Server Error",
                 "Unable to generate a short code.",
+                request.getRequestURI()
+        );
+    }
+
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ProblemDetail handleRateLimitExceeded(RateLimitExceededException ex, HttpServletRequest request) {
+        return buildProblemDetail(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "Too Many Requests",
+                "Rate limit exceeded.",
                 request.getRequestURI()
         );
     }

@@ -6,8 +6,11 @@ import com.vishnu.urlshortener.link.application.InvalidExpirationException;
 import com.vishnu.urlshortener.link.application.InvalidOriginalUrlException;
 import com.vishnu.urlshortener.link.application.LinkNotFoundException;
 import com.vishnu.urlshortener.link.application.LinkService;
+import com.vishnu.urlshortener.link.application.RateLimitExceededException;
 import com.vishnu.urlshortener.link.application.ShortCodeGenerationException;
 import com.vishnu.urlshortener.link.domain.Link;
+import com.vishnu.urlshortener.link.api.CreateLinkRateLimitInterceptor;
+import com.vishnu.urlshortener.link.application.CreateLinkRateLimiter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -24,6 +27,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -37,6 +41,9 @@ class LinkControllerTest {
     @Mock
     private LinkService linkService;
 
+    @Mock
+    private CreateLinkRateLimiter createLinkRateLimiter;
+
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
 
@@ -46,6 +53,7 @@ class LinkControllerTest {
         validator.afterPropertiesSet();
 
         mockMvc = MockMvcBuilders.standaloneSetup(new LinkController(linkService))
+                .addInterceptors(new CreateLinkRateLimitInterceptor(createLinkRateLimiter))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(validator)
                 .build();
@@ -223,5 +231,22 @@ class LinkControllerTest {
                 .andExpect(jsonPath("$.title").value("Internal Server Error"))
                 .andExpect(jsonPath("$.detail").value("Unable to generate a short code."))
                 .andExpect(jsonPath("$.instance").value("/api/v1/links"));
+    }
+
+    @Test
+    void createLinkReturnsTooManyRequestsWhenRateLimited() throws Exception {
+        doThrow(new RateLimitExceededException()).when(createLinkRateLimiter).assertAllowed(anyString());
+
+        mockMvc.perform(post("/api/v1/links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Host", "sho.rt")
+                        .content(objectMapper.writeValueAsString(new CreateLinkRequest("https://example.com/landing"))))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.status").value(429))
+                .andExpect(jsonPath("$.title").value("Too Many Requests"))
+                .andExpect(jsonPath("$.detail").value("Rate limit exceeded."))
+                .andExpect(jsonPath("$.instance").value("/api/v1/links"));
+
+        verifyNoInteractions(linkService);
     }
 }

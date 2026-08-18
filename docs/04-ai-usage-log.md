@@ -469,3 +469,42 @@ Approved.
 
 ---
 
+## AI-011 — Ambiguous Abuse-Protection Analysis and Implementation
+
+### Intent
+Resolve the ambiguous abuse-protection requirement, implement the agreed prototype limiter, and validate it end to end.
+
+### Context
+The requirement was intentionally underspecified. Engineering first normalized the scope to `POST /api/v1/links` only, anonymous clients, fixed-window per remote address, and no redirect protection or distributed infrastructure.
+
+### AI contribution
+Copilot identified the key ambiguities, proposed the smallest prototype-safe design, implemented the in-memory fixed-window limiter, added centralized 429 handling, and reviewed the result skeptically against quota semantics, thread safety, and scope boundaries.
+
+### Engineer decisions
+
+Accepted:
+- `POST /api/v1/links` only
+- anonymous clients identified by `getRemoteAddr()`
+- 20 requests per 60-second fixed window
+- in-memory, thread-safe implementation
+- centralized `ProblemDetail` 429 response
+
+Modified:
+- Added a dedicated rate-limit exception and interceptor-based enforcement
+- Used a deterministic `Clock` in tests instead of sleeps
+
+Rejected:
+- Redis
+- Spring Security
+- authentication-based quotas
+- redirect rate limiting
+- trust in `X-Forwarded-For`
+- unrelated refactors
+
+### Validation
+- focused automated tests covered threshold, reset, per-client isolation, and standardized 429 handling
+- `./mvnw clean test` → BUILD SUCCESS
+- manual 21-request validation confirmed the 21st create request is rejected
+
+### Engineer sign-off
+Approved.
