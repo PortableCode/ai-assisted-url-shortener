@@ -628,3 +628,37 @@ Approved.
 
 ---
 
+## AI-015 — Final Documentation
+
+### Intent
+Complete the final evaluator-facing documentation set for the finished solution.
+
+### Context
+The README and docs/08-11 files were added after the codebase and packaging were complete. The pass had to reflect the implemented greenfield, brownfield, ambiguous abuse-control, Docker/CI, testing, security, tradeoffs, and final-summary decisions without inventing new capabilities.
+
+### AI contribution
+Copilot reviewed the existing repository and scenario docs, then helped structure concise evaluator-facing documentation that links the completed scenarios, validation, risks, tradeoffs, and final engineering summary.
+
+### Engineer decisions
+
+Accepted:
+- README as evaluator entry point
+- concise testing, security, tradeoff, and final-summary docs
+- links between README and scenario documents
+
+Modified:
+- clarified the implemented `410 Gone` redirect response in the OpenAPI docs after review
+
+Rejected:
+- new functionality claims
+- overengineered architecture language
+- references to Redis, Kafka, authentication, Kubernetes, or cloud deployment
+
+### Validation
+- final documentation review completed against the actual repository state
+
+### Engineer sign-off
+Approved.
+
+---
+

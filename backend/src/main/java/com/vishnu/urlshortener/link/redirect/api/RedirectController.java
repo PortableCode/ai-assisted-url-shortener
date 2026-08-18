@@ -24,7 +24,8 @@ public class RedirectController {
     @Operation(summary = "Redirect to the original URL")
     @ApiResponses({
             @ApiResponse(responseCode = "302", description = "Redirected to the original URL"),
-            @ApiResponse(responseCode = "404", description = "Short code not found")
+            @ApiResponse(responseCode = "404", description = "Short code not found"),
+            @ApiResponse(responseCode = "410", description = "Short link has expired")
     })
     @GetMapping("/{shortCode:[a-zA-Z0-9]{7}}")
     public ResponseEntity<Void> redirect(@PathVariable String shortCode) {
