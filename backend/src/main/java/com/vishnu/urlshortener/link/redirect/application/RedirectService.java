@@ -1,6 +1,7 @@
 package com.vishnu.urlshortener.link.redirect.application;
 
 import com.vishnu.urlshortener.link.application.LinkNotFoundException;
+import com.vishnu.urlshortener.link.application.LinkExpiredException;
 import com.vishnu.urlshortener.link.domain.Link;
 import com.vishnu.urlshortener.link.persistence.LinkRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,17 +34,32 @@ public class RedirectService {
     @Transactional
     public String redirect(String shortCode) {
         validateShortCode(shortCode);
+        Instant accessedAt = Instant.now(clock);
 
         Link link = linkRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new LinkNotFoundException(shortCode));
 
-        Instant accessedAt = Instant.now(clock);
+        if (isExpired(link, accessedAt)) {
+            throw new LinkExpiredException(shortCode);
+        }
+
         int updatedRows = linkRepository.incrementAccessStats(shortCode, accessedAt);
         if (updatedRows == 0) {
+            if (linkRepository.findByShortCode(shortCode).isEmpty()) {
+                throw new LinkNotFoundException(shortCode);
+            }
+            if (isExpired(link, accessedAt)) {
+                throw new LinkExpiredException(shortCode);
+            }
             throw new LinkNotFoundException(shortCode);
         }
 
         return link.getOriginalUrl();
+    }
+
+    private boolean isExpired(Link link, Instant accessedAt) {
+        Instant expiresAt = link.getExpiresAt();
+        return expiresAt != null && !expiresAt.isAfter(accessedAt);
     }
 
     private void validateShortCode(String shortCode) {

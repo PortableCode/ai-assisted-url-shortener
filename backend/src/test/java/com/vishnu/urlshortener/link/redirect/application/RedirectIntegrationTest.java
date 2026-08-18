@@ -77,6 +77,36 @@ class RedirectIntegrationTest {
     }
 
     @Test
+    void activeExpiringLinkRedirectsAndUpdatesAnalytics() throws Exception {
+        Link link = new Link("ghi5678", "https://example.com/expiring", Instant.parse("2026-08-18T00:00:00Z"), Instant.parse("2030-01-01T00:00:00Z"));
+        linkRepository.saveAndFlush(link);
+        entityManager.clear();
+
+        mockMvc.perform(get("/ghi5678"))
+                .andExpect(status().isFound());
+
+        entityManager.clear();
+        Link reloaded = linkRepository.findByShortCode("ghi5678").orElseThrow();
+        assertEquals(1L, reloaded.getClickCount());
+        assertNotNull(reloaded.getLastAccessedAt());
+    }
+
+    @Test
+    void expiredLinkReturnsGoneAndDoesNotIncrementAnalytics() throws Exception {
+        Link link = new Link("jkl5678", "https://example.com/expired", Instant.parse("2026-08-18T00:00:00Z"), Instant.parse("2020-01-01T00:00:00Z"));
+        linkRepository.saveAndFlush(link);
+        entityManager.clear();
+
+        mockMvc.perform(get("/jkl5678"))
+                .andExpect(status().isGone());
+
+        entityManager.clear();
+        Link reloaded = linkRepository.findByShortCode("jkl5678").orElseThrow();
+        assertEquals(0L, reloaded.getClickCount());
+        assertEquals(null, reloaded.getLastAccessedAt());
+    }
+
+    @Test
     void repeatedConcurrentRedirectsIncrementClickCountAtomically() throws Exception {
         Link link = new Link("abc1234", "https://example.com/landing", Instant.parse("2026-08-18T00:00:00Z"));
         linkRepository.saveAndFlush(link);

@@ -37,7 +37,7 @@ public class LinkController {
     })
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CreateLinkResponse> createLink(@Valid @RequestBody CreateLinkRequest request) {
-        Link link = linkService.createLink(request.originalUrl());
+        Link link = linkService.createLink(request.originalUrl(), request.expiresAt());
         String shortUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/")
                 .path(link.getShortCode())
@@ -47,7 +47,8 @@ public class LinkController {
                 link.getShortCode(),
                 shortUrl,
                 link.getOriginalUrl(),
-                link.getCreatedAt()
+                link.getCreatedAt(),
+                link.getExpiresAt()
         );
 
         return ResponseEntity.created(URI.create(shortUrl)).body(response);
@@ -61,7 +62,7 @@ public class LinkController {
     @GetMapping("/{shortCode:[a-zA-Z0-9]{7}}")
     public ResponseEntity<LinkMetadataResponse> getLinkMetadata(@PathVariable String shortCode) {
         Link link = linkService.getLinkMetadata(shortCode);
-        return ResponseEntity.ok(new LinkMetadataResponse(link.getShortCode(), link.getOriginalUrl(), link.getCreatedAt()));
+        return ResponseEntity.ok(new LinkMetadataResponse(link.getShortCode(), link.getOriginalUrl(), link.getCreatedAt(), link.getExpiresAt()));
     }
 
     @Operation(summary = "Get aggregate link analytics")

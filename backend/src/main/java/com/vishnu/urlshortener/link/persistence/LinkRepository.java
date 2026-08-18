@@ -19,6 +19,7 @@ public interface LinkRepository extends JpaRepository<Link, Long> {
             set click_count = click_count + 1,
                 last_accessed_at = :accessedAt
             where short_code = :shortCode
+              and (expires_at is null or expires_at > :accessedAt)
             """, nativeQuery = true)
     int incrementAccessStats(@Param("shortCode") String shortCode, @Param("accessedAt") Instant accessedAt);
 

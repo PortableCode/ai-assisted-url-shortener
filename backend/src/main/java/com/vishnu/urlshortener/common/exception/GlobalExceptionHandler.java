@@ -1,6 +1,8 @@
 package com.vishnu.urlshortener.common.exception;
 
 import com.vishnu.urlshortener.link.application.InvalidOriginalUrlException;
+import com.vishnu.urlshortener.link.application.InvalidExpirationException;
+import com.vishnu.urlshortener.link.application.LinkExpiredException;
 import com.vishnu.urlshortener.link.application.LinkNotFoundException;
 import com.vishnu.urlshortener.link.application.ShortCodeGenerationException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,6 +29,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(LinkNotFoundException.class)
     public ProblemDetail handleLinkNotFound(LinkNotFoundException ex, HttpServletRequest request) {
         return buildProblemDetail(HttpStatus.NOT_FOUND, "Not Found", ex.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(LinkExpiredException.class)
+    public ProblemDetail handleLinkExpired(LinkExpiredException ex, HttpServletRequest request) {
+        return buildProblemDetail(HttpStatus.GONE, "Gone", ex.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -59,6 +66,11 @@ public class GlobalExceptionHandler {
                 "Unable to generate a short code.",
                 request.getRequestURI()
         );
+    }
+
+    @ExceptionHandler(InvalidExpirationException.class)
+    public ProblemDetail handleInvalidExpiration(InvalidExpirationException ex, HttpServletRequest request) {
+        return buildProblemDetail(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage(), request.getRequestURI());
     }
 
     private ProblemDetail buildProblemDetail(HttpStatus status, String title, String detail, String instance) {

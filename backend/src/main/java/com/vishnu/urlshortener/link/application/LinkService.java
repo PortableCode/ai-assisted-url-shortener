@@ -40,10 +40,16 @@ public class LinkService {
     }
 
     public Link createLink(String originalUrl) {
+        return createLink(originalUrl, null);
+    }
+
+    public Link createLink(String originalUrl, Instant expiresAt) {
         String validatedUrl = validateOriginalUrl(originalUrl);
+        Instant now = clock.instant();
+        validateExpiration(expiresAt, now);
 
         for (int attempt = 1; attempt <= MAX_RETRY_ATTEMPTS; attempt++) {
-            Link link = new Link(shortCodeGenerator.generateCandidate(), validatedUrl, Instant.now(clock));
+            Link link = new Link(shortCodeGenerator.generateCandidate(), validatedUrl, now, expiresAt);
             try {
                 return linkRepository.saveAndFlush(link);
             }
@@ -58,6 +64,12 @@ public class LinkService {
         }
 
         throw new ShortCodeGenerationException("Unable to generate a unique short code after 5 attempts", null);
+    }
+
+    private void validateExpiration(Instant expiresAt, Instant now) {
+        if (expiresAt != null && !expiresAt.isAfter(now)) {
+            throw new InvalidExpirationException("expiresAt must be in the future");
+        }
     }
 
     private String validateOriginalUrl(String originalUrl) {

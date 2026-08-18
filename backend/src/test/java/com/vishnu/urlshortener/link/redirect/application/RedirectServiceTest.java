@@ -1,5 +1,6 @@
 package com.vishnu.urlshortener.link.redirect.application;
 
+import com.vishnu.urlshortener.link.application.LinkExpiredException;
 import com.vishnu.urlshortener.link.application.LinkNotFoundException;
 import com.vishnu.urlshortener.link.domain.Link;
 import com.vishnu.urlshortener.link.persistence.LinkRepository;
@@ -21,7 +22,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,10 +52,33 @@ class RedirectServiceTest {
     }
 
     @Test
+    void redirectReturnsOriginalUrlForFutureExpiringLink() {
+        Link link = new Link("abc1234", "https://example.com/landing", Instant.parse("2026-08-17T23:59:00Z"), Instant.parse("2026-08-18T00:30:00Z"));
+        when(linkRepository.findByShortCode("abc1234")).thenReturn(Optional.of(link));
+        when(linkRepository.incrementAccessStats(eq("abc1234"), any(Instant.class))).thenReturn(1);
+
+        String originalUrl = redirectService.redirect("abc1234");
+
+        assertEquals("https://example.com/landing", originalUrl);
+        verify(linkRepository).incrementAccessStats(eq("abc1234"), eq(Instant.parse("2026-08-18T00:00:00Z")));
+    }
+
+    @Test
     void redirectThrowsNotFoundForUnknownCode() {
         when(linkRepository.findByShortCode("abc1234")).thenReturn(Optional.empty());
 
         assertThrows(LinkNotFoundException.class, () -> redirectService.redirect("abc1234"));
+
+        verify(linkRepository).findByShortCode("abc1234");
+        verify(linkRepository, never()).incrementAccessStats(any(), any());
+    }
+
+    @Test
+    void redirectThrowsGoneForExpiredLink() {
+        Link link = new Link("abc1234", "https://example.com/landing", Instant.parse("2026-08-17T23:59:00Z"), Instant.parse("2026-08-17T23:59:59Z"));
+        when(linkRepository.findByShortCode("abc1234")).thenReturn(Optional.of(link));
+
+        assertThrows(LinkExpiredException.class, () -> redirectService.redirect("abc1234"));
 
         verify(linkRepository).findByShortCode("abc1234");
         verify(linkRepository, never()).incrementAccessStats(any(), any());
@@ -69,7 +92,7 @@ class RedirectServiceTest {
 
         assertThrows(LinkNotFoundException.class, () -> redirectService.redirect("abc1234"));
 
-        verify(linkRepository).findByShortCode("abc1234");
+        verify(linkRepository, times(2)).findByShortCode("abc1234");
         verify(linkRepository).incrementAccessStats(eq("abc1234"), eq(Instant.parse("2026-08-18T00:00:00Z")));
     }
 }

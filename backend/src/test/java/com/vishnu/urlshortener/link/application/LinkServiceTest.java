@@ -59,6 +59,21 @@ class LinkServiceTest {
         assertEquals(Instant.parse("2026-08-17T23:30:00Z"), created.getCreatedAt());
         assertEquals(0L, created.getClickCount());
         assertEquals("abc1234", persisted.getShortCode());
+        assertEquals(null, persisted.getExpiresAt());
+    }
+
+    @Test
+    void createLinkWithFutureExpirationPersistsExpiration() {
+        when(shortCodeGenerator.generateCandidate()).thenReturn("abc1234");
+        when(linkRepository.saveAndFlush(any(Link.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Instant expiresAt = Instant.parse("2026-08-17T23:45:00Z");
+        Link created = linkService.createLink("https://example.com/landing", expiresAt);
+
+        ArgumentCaptor<Link> captor = ArgumentCaptor.forClass(Link.class);
+        verify(linkRepository).saveAndFlush(captor.capture());
+        assertEquals(expiresAt, created.getExpiresAt());
+        assertEquals(expiresAt, captor.getValue().getExpiresAt());
     }
 
     @Test
@@ -71,6 +86,20 @@ class LinkServiceTest {
     @Test
     void createLinkRejectsUnsupportedScheme() {
         assertThrows(InvalidOriginalUrlException.class, () -> linkService.createLink("ftp://example.com/file.txt"));
+
+        verifyNoInteractions(shortCodeGenerator, linkRepository);
+    }
+
+    @Test
+    void createLinkRejectsPastExpiration() {
+        assertThrows(InvalidExpirationException.class, () -> linkService.createLink("https://example.com", Instant.parse("2026-08-17T23:29:59Z")));
+
+        verifyNoInteractions(shortCodeGenerator, linkRepository);
+    }
+
+    @Test
+    void createLinkRejectsExpirationEqualToCurrentTime() {
+        assertThrows(InvalidExpirationException.class, () -> linkService.createLink("https://example.com", Instant.parse("2026-08-17T23:30:00Z")));
 
         verifyNoInteractions(shortCodeGenerator, linkRepository);
     }

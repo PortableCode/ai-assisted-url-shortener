@@ -424,3 +424,48 @@ Approved.
 
 ---
 
+## AI-010 — Brownfield Expiration Analysis and Review
+
+### Tool
+GitHub Copilot Chat
+
+### Intent
+Analyze and document the brownfield expiration enhancement against the completed greenfield backend.
+
+### Context
+The greenfield backend was already complete and validated; expiration needed to be added as a backward-compatible brownfield change with a new schema migration, 410 handling, and expiration-aware redirect behavior.
+
+### AI contribution
+Copilot reviewed the current repository, identified affected modules and schema changes, drafted the behavior matrix, and called out time-boundary and backward-compatibility risks before and after implementation.
+
+### Engineer decisions
+
+Accepted:
+- Optional expiration with `expires_at`
+- `V2` Flyway migration only
+- `302` for active/no-expiration links
+- `410 Gone` for expired links
+- `404 Not Found` for unknown/deleted links
+- Hard delete unchanged
+
+Modified:
+- Kept analytics aggregate-only and left its response shape unchanged
+- Used the injected `Clock`/`Instant` pattern for deterministic validation and redirect checks
+
+Rejected:
+- Background cleanup
+- Scheduler-based expiry processing
+- Soft delete
+- Redis
+- Kafka
+- Any unrelated refactor
+
+### Validation
+- `./mvnw clean test` → BUILD SUCCESS
+- manual runtime checks covered redirect, expired-link 410, metadata, and post-expiration compatibility
+
+### Engineer sign-off
+Approved.
+
+---
+

@@ -27,6 +27,9 @@ public class Link {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "expires_at")
+    private Instant expiresAt;
+
     @Column(name = "click_count", nullable = false)
     private long clickCount;
 
@@ -38,9 +41,14 @@ public class Link {
     }
 
     public Link(String shortCode, String originalUrl, Instant createdAt) {
+        this(shortCode, originalUrl, createdAt, null);
+    }
+
+    public Link(String shortCode, String originalUrl, Instant createdAt, Instant expiresAt) {
         this.shortCode = requireNonBlank(shortCode, "shortCode");
         this.originalUrl = requireNonBlank(originalUrl, "originalUrl");
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt must not be null");
+        this.expiresAt = expiresAt;
         this.clickCount = 0L;
     }
 
@@ -58,6 +66,10 @@ public class Link {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getExpiresAt() {
+        return expiresAt;
     }
 
     public long getClickCount() {

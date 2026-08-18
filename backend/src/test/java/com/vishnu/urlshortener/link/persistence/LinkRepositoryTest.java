@@ -51,8 +51,36 @@ class LinkRepositoryTest {
         assertEquals(saved.getId(), found.get().getId());
         assertEquals("https://example.com/landing", found.get().getOriginalUrl());
         assertEquals(createdAt, found.get().getCreatedAt());
+        assertNull(found.get().getExpiresAt());
         assertEquals(0L, found.get().getClickCount());
         assertNull(found.get().getLastAccessedAt());
+    }
+
+    @Test
+    void saveAndFindByShortCodePersistsExpiration() {
+        Instant createdAt = Instant.parse("2026-08-17T22:00:00Z");
+        Instant expiresAt = Instant.parse("2026-08-18T22:00:00Z");
+        Link link = new Link("ghi5678", "https://example.com/expiring", createdAt, expiresAt);
+
+        linkRepository.saveAndFlush(link);
+        entityManager.clear();
+
+        Optional<Link> found = linkRepository.findByShortCode("ghi5678");
+
+        assertTrue(found.isPresent());
+        assertEquals(expiresAt, found.get().getExpiresAt());
+    }
+
+    @Test
+    void v2MigrationAddsNullableExpirationColumn() {
+        Object nullable = entityManager.createNativeQuery("""
+                select is_nullable
+                from information_schema.columns
+                where table_name = 'links'
+                  and column_name = 'expires_at'
+                """).getSingleResult();
+
+        assertEquals("YES", nullable);
     }
 
     @Test
