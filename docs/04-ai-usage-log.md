@@ -148,3 +148,84 @@ The baseline needed only enough structure to match the V1 schema cleanly and sup
 
 ### Engineer sign-off
 Approved.
+
+---
+
+## AI-004 — Repository Test Isolation
+
+### Tool
+GitHub Copilot Chat
+
+### Intent
+Isolate persistence tests using real PostgreSQL.
+
+### Context
+Repository integration testing for `LinkRepository` against the existing V1 schema.
+
+### AI contribution
+Copilot proposed a real PostgreSQL Testcontainers setup with Flyway-driven schema creation and a repository save/find round trip.
+
+### Engineer decisions
+
+Accepted:
+- Testcontainers PostgreSQL
+- Flyway runs during the integration test
+- Repository save/find validation
+
+Rejected:
+- H2
+- Local Compose dependency
+- Schema duplication
+
+### Rationale
+The repository test needed to exercise the real mapping and schema without depending on a developer’s local Compose database or an alternate in-memory dialect.
+
+### Validation
+- `./mvnw -Dtest=LinkRepositoryTest test` → BUILD SUCCESS
+- `./mvnw clean test` → BUILD SUCCESS
+
+### Engineer sign-off
+Approved.
+
+---
+
+## AI-005 — Testcontainers Version Management
+
+### Tool
+GitHub Copilot Chat
+
+### Intent
+Validate the Testcontainers dependency setup for the repository integration test.
+
+### Context
+Spring Boot 4.0.7 repository integration testing with a real PostgreSQL Testcontainer.
+
+### AI contribution
+AI suggested relying on Spring Boot dependency management for the Testcontainers modules.
+
+### Engineer decisions
+
+Accepted:
+- Real PostgreSQL Testcontainers setup
+- Flyway-driven schema creation during the integration test
+- Repository save/find validation
+
+Modified:
+- Restored explicit `1.21.4` versions for the Testcontainers modules after Maven validation required them in this project
+
+Rejected:
+- H2
+- Local Compose dependency
+- Schema duplication
+
+### Rationale
+The project’s current Maven setup required explicit Testcontainers versions, so relying on dependency management alone was not sufficient. Restoring the explicit versions kept the build deterministic and aligned with the existing project configuration.
+
+### Validation
+- `./mvnw -Dtest=LinkRepositoryTest test` → BUILD SUCCESS
+- `./mvnw clean test` → BUILD SUCCESS
+
+### Engineer sign-off
+Approved.
+
+---

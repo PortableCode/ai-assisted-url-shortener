@@ -1,0 +1,55 @@
+package com.vishnu.urlshortener.link.persistence;
+
+import com.vishnu.urlshortener.link.domain.Link;
+import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.time.Instant;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@SpringBootTest
+@Testcontainers
+class LinkRepositoryTest {
+
+    @Container
+    @ServiceConnection
+    static final PostgreSQLContainer<?> postgresql = new PostgreSQLContainer<>("postgres:17-alpine")
+            .withDatabaseName("url_shortener")
+            .withUsername("url_shortener")
+            .withPassword("url_shortener");
+
+    @Autowired
+    private LinkRepository linkRepository;
+
+    @Autowired
+    private EntityManager entityManager;
+
+    @Test
+    void saveAndFindByShortCodePersistsMappedFields() {
+        Instant createdAt = Instant.parse("2026-08-17T22:00:00Z");
+        Link link = new Link("abc1234", "https://example.com/landing", createdAt);
+
+        Link saved = linkRepository.save(link);
+        linkRepository.flush();
+        entityManager.clear();
+
+        Optional<Link> found = linkRepository.findByShortCode("abc1234");
+
+        assertTrue(found.isPresent());
+        assertEquals(saved.getId(), found.get().getId());
+        assertEquals("https://example.com/landing", found.get().getOriginalUrl());
+        assertEquals(createdAt, found.get().getCreatedAt());
+        assertEquals(0L, found.get().getClickCount());
+        assertNull(found.get().getLastAccessedAt());
+    }
+}
