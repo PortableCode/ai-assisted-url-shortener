@@ -1,6 +1,7 @@
 package com.vishnu.urlshortener.link.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vishnu.urlshortener.link.application.LinkNotFoundException;
 import com.vishnu.urlshortener.link.application.LinkService;
 import com.vishnu.urlshortener.link.domain.Link;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,8 +16,12 @@ import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
 import java.time.Instant;
 
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -58,6 +63,61 @@ class LinkControllerTest {
                 .andExpect(jsonPath("$.shortUrl").value("http://sho.rt/abc1234"))
                 .andExpect(jsonPath("$.originalUrl").value("https://example.com/landing"))
                 .andExpect(jsonPath("$.createdAt").value("2026-08-17T23:35:00Z"));
+    }
+
+    @Test
+    void metadataReturnsStoredFields() throws Exception {
+        Instant createdAt = Instant.parse("2026-08-17T23:35:00Z");
+        when(linkService.getLinkMetadata("abc1234"))
+                .thenReturn(new Link("abc1234", "https://example.com/landing", createdAt));
+
+        mockMvc.perform(get("/api/v1/links/abc1234"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.shortCode").value("abc1234"))
+                .andExpect(jsonPath("$.originalUrl").value("https://example.com/landing"))
+                .andExpect(jsonPath("$.createdAt").value("2026-08-17T23:35:00Z"));
+    }
+
+    @Test
+    void analyticsReturnsStoredFields() throws Exception {
+        Link link = new Link("abc1234", "https://example.com/landing", Instant.parse("2026-08-17T23:35:00Z"));
+        when(linkService.getLinkAnalytics("abc1234")).thenReturn(link);
+
+        mockMvc.perform(get("/api/v1/links/abc1234/analytics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.shortCode").value("abc1234"))
+                .andExpect(jsonPath("$.clickCount").value(0))
+                .andExpect(jsonPath("$.lastAccessedAt").value(nullValue()));
+    }
+
+    @Test
+    void deleteReturnsNoContent() throws Exception {
+        mockMvc.perform(delete("/api/v1/links/abc1234"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void metadataReturnsNotFoundForUnknownCode() throws Exception {
+        when(linkService.getLinkMetadata("abc1234")).thenThrow(new LinkNotFoundException("abc1234"));
+
+        mockMvc.perform(get("/api/v1/links/abc1234"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void analyticsReturnsNotFoundForUnknownCode() throws Exception {
+        when(linkService.getLinkAnalytics("abc1234")).thenThrow(new LinkNotFoundException("abc1234"));
+
+        mockMvc.perform(get("/api/v1/links/abc1234/analytics"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteReturnsNotFoundForUnknownCode() throws Exception {
+        doThrow(new LinkNotFoundException("abc1234")).when(linkService).deleteLink("abc1234");
+
+        mockMvc.perform(delete("/api/v1/links/abc1234"))
+                .andExpect(status().isNotFound());
     }
 
     @Test

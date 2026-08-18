@@ -6,6 +6,7 @@ import com.vishnu.urlshortener.link.persistence.LinkRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -14,12 +15,14 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 @Service
 public class LinkService {
 
     private static final int MAX_RETRY_ATTEMPTS = 5;
     private static final String UNIQUE_VIOLATION_SQL_STATE = "23505";
+    private static final Pattern SHORT_CODE_PATTERN = Pattern.compile("^[a-zA-Z0-9]{7}$");
 
     private final LinkRepository linkRepository;
     private final ShortCodeGenerator shortCodeGenerator;
@@ -85,6 +88,35 @@ public class LinkService {
         }
 
         return originalUrl;
+    }
+
+    public Link getLinkMetadata(String shortCode) {
+        return findLink(shortCode);
+    }
+
+    public Link getLinkAnalytics(String shortCode) {
+        return findLink(shortCode);
+    }
+
+    @Transactional
+    public void deleteLink(String shortCode) {
+        validateShortCode(shortCode);
+        int deletedRows = linkRepository.deleteByShortCode(shortCode);
+        if (deletedRows == 0) {
+            throw new LinkNotFoundException(shortCode);
+        }
+    }
+
+    private Link findLink(String shortCode) {
+        validateShortCode(shortCode);
+        return linkRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new LinkNotFoundException(shortCode));
+    }
+
+    private void validateShortCode(String shortCode) {
+        if (shortCode == null || !SHORT_CODE_PATTERN.matcher(shortCode).matches()) {
+            throw new LinkNotFoundException(String.valueOf(shortCode));
+        }
     }
 
     private boolean isUniqueConstraintViolation(DataIntegrityViolationException ex) {

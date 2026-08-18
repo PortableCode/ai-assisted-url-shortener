@@ -21,4 +21,11 @@ public interface LinkRepository extends JpaRepository<Link, Long> {
             where short_code = :shortCode
             """, nativeQuery = true)
     int incrementAccessStats(@Param("shortCode") String shortCode, @Param("accessedAt") Instant accessedAt);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(value = """
+            delete from links
+            where short_code = :shortCode
+            """, nativeQuery = true)
+    int deleteByShortCode(@Param("shortCode") String shortCode);
 }

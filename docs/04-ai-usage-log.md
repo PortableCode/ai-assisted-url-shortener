@@ -320,3 +320,50 @@ The redirect path needs to preserve click counts under concurrency without intro
 Approved.
 
 ---
+
+## AI-008 — Metadata, Analytics, and Hard Delete
+
+### Tool
+GitHub Copilot Chat
+
+### Intent
+Implement metadata lookup, analytics lookup, and hard delete APIs.
+
+### Context
+Greenfield read/delete APIs built on the existing Link entity, controller, and repository.
+
+### AI contribution
+Copilot proposed reusing the current service/controller, response DTO boundaries, and hard-delete-by-short-code behavior.
+
+### Engineer decisions
+
+Accepted:
+- Reuse existing `LinkService` and `LinkController`
+- Dedicated metadata/analytics response DTOs
+- Database ID not exposed
+- Physical delete by short code
+- Affected-row count determines not-found
+- Nullable `lastAccessedAt`
+
+Added after review:
+- Explicit integration coverage proving deleted short code returns 404 through the redirect endpoint
+
+Rejected:
+- Soft delete
+- Audit table
+- New schema migration
+- Expiration
+- Analytics event table
+- Unnecessary services
+
+### Rationale
+The read/delete APIs stay aligned with the existing greenfield model: simple DTO boundaries, hard deletion, and no extra persistence structures or lifecycle flags.
+
+### Validation
+`./mvnw clean test` → BUILD SUCCESS
+
+### Engineer sign-off
+Approved.
+
+---
+

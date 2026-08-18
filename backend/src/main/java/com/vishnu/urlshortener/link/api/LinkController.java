@@ -10,6 +10,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,6 +47,25 @@ public class LinkController {
         );
 
         return ResponseEntity.created(URI.create(shortUrl)).body(response);
+    }
+
+
+    @GetMapping("/{shortCode:[a-zA-Z0-9]{7}}")
+    public ResponseEntity<LinkMetadataResponse> getLinkMetadata(@PathVariable String shortCode) {
+        Link link = linkService.getLinkMetadata(shortCode);
+        return ResponseEntity.ok(new LinkMetadataResponse(link.getShortCode(), link.getOriginalUrl(), link.getCreatedAt()));
+    }
+
+    @GetMapping("/{shortCode:[a-zA-Z0-9]{7}}/analytics")
+    public ResponseEntity<LinkAnalyticsResponse> getLinkAnalytics(@PathVariable String shortCode) {
+        Link link = linkService.getLinkAnalytics(shortCode);
+        return ResponseEntity.ok(new LinkAnalyticsResponse(link.getShortCode(), link.getClickCount(), link.getLastAccessedAt()));
+    }
+
+    @DeleteMapping("/{shortCode:[a-zA-Z0-9]{7}}")
+    public ResponseEntity<Void> deleteLink(@PathVariable String shortCode) {
+        linkService.deleteLink(shortCode);
+        return ResponseEntity.noContent().build();
     }
 
     @ExceptionHandler(InvalidOriginalUrlException.class)

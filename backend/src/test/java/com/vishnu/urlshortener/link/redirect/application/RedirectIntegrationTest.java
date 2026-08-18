@@ -1,5 +1,6 @@
 package com.vishnu.urlshortener.link.redirect.application;
 
+import com.vishnu.urlshortener.link.application.LinkService;
 import com.vishnu.urlshortener.link.domain.Link;
 import com.vishnu.urlshortener.link.persistence.LinkRepository;
 import jakarta.persistence.EntityManager;
@@ -9,6 +10,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.Instant;
@@ -23,6 +27,8 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @Testcontainers
@@ -36,13 +42,39 @@ class RedirectIntegrationTest {
             .withPassword("url_shortener");
 
     @Autowired
+    private LinkService linkService;
+
+    @Autowired
     private RedirectService redirectService;
+
+    @Autowired
+    private WebApplicationContext webApplicationContext;
+
+    private MockMvc mockMvc;
 
     @Autowired
     private LinkRepository linkRepository;
 
     @Autowired
     private EntityManager entityManager;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+    }
+
+    @Test
+    void deletedLinkNoLongerRedirects() throws Exception {
+        Link link = new Link("def5678", "https://example.com/deleted", Instant.parse("2026-08-18T00:00:00Z"));
+        linkRepository.saveAndFlush(link);
+        entityManager.clear();
+
+        linkService.deleteLink("def5678");
+        entityManager.clear();
+
+        mockMvc.perform(get("/def5678"))
+                .andExpect(status().isNotFound());
+    }
 
     @Test
     void repeatedConcurrentRedirectsIncrementClickCountAtomically() throws Exception {
