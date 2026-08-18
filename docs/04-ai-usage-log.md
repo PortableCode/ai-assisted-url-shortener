@@ -229,3 +229,48 @@ The project’s current Maven setup required explicit Testcontainers versions, s
 Approved.
 
 ---
+
+## AI-006 — Create-Link API
+
+### Tool
+GitHub Copilot Chat
+
+### Intent
+Implement the POST `/api/v1/links` create-link feature.
+
+### Context
+Greenfield create-link API on top of the existing Link entity, repository, and short-code generator.
+
+### AI contribution
+Copilot proposed the controller/service split, URI-based validation, bounded collision handling, and request-derived short URL assembly.
+
+### Engineer decisions
+
+Accepted:
+- Thin controller + DTO boundary
+- URI-based HTTP/HTTPS validation
+- `saveAndFlush()` so uniqueness failures occur inside retry handling
+- Five bounded attempts
+- Database uniqueness remains authoritative
+- Request-derived short URL rather than hardcoded localhost
+
+Accepted with limitation:
+- SQLState `23505` retry is sufficient while `short_code` is the only unique application constraint; make it constraint-specific if more unique constraints are added
+- `ServletUriComponentsBuilder` is correct for the prototype/direct local deployment; trusted proxy/public-base-URL handling will be documented for production
+
+Deferred:
+- Centralized/global error handling
+- Proxy forwarding configuration
+- Broader URL policy/malware filtering
+
+### Rationale
+The feature stays intentionally small while still enforcing valid HTTP(S) URLs, preserving the database as the source of truth for uniqueness, and avoiding premature infrastructure or policy work.
+
+### Validation
+- `./mvnw -Dtest=LinkServiceTest,LinkControllerTest test` → BUILD SUCCESS
+- `./mvnw clean test` → BUILD SUCCESS
+
+### Engineer sign-off
+Approved.
+
+---

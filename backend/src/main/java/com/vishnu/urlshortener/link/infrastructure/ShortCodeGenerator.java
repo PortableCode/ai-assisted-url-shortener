@@ -1,8 +1,11 @@
 package com.vishnu.urlshortener.link.infrastructure;
 
+import org.springframework.stereotype.Component;
+
 import java.security.SecureRandom;
 import java.util.Objects;
 
+@Component
 public final class ShortCodeGenerator {
 
     private static final int SHORT_CODE_LENGTH = 7;
