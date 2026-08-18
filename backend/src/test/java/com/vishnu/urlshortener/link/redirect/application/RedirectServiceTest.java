@@ -1,5 +1,6 @@
 package com.vishnu.urlshortener.link.redirect.application;
 
+import com.vishnu.urlshortener.link.application.LinkNotFoundException;
 import com.vishnu.urlshortener.link.domain.Link;
 import com.vishnu.urlshortener.link.persistence.LinkRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +55,7 @@ class RedirectServiceTest {
     void redirectThrowsNotFoundForUnknownCode() {
         when(linkRepository.findByShortCode("abc1234")).thenReturn(Optional.empty());
 
-        assertThrows(ShortCodeNotFoundException.class, () -> redirectService.redirect("abc1234"));
+        assertThrows(LinkNotFoundException.class, () -> redirectService.redirect("abc1234"));
 
         verify(linkRepository).findByShortCode("abc1234");
         verify(linkRepository, never()).incrementAccessStats(any(), any());
@@ -66,7 +67,7 @@ class RedirectServiceTest {
         when(linkRepository.findByShortCode("abc1234")).thenReturn(Optional.of(link));
         when(linkRepository.incrementAccessStats(eq("abc1234"), any(Instant.class))).thenReturn(0);
 
-        assertThrows(ShortCodeNotFoundException.class, () -> redirectService.redirect("abc1234"));
+        assertThrows(LinkNotFoundException.class, () -> redirectService.redirect("abc1234"));
 
         verify(linkRepository).findByShortCode("abc1234");
         verify(linkRepository).incrementAccessStats(eq("abc1234"), eq(Instant.parse("2026-08-18T00:00:00Z")));

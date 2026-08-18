@@ -1,7 +1,8 @@
 package com.vishnu.urlshortener.link.redirect.api;
 
+import com.vishnu.urlshortener.common.exception.GlobalExceptionHandler;
+import com.vishnu.urlshortener.link.application.LinkNotFoundException;
 import com.vishnu.urlshortener.link.redirect.application.RedirectService;
-import com.vishnu.urlshortener.link.redirect.application.ShortCodeNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,7 +27,9 @@ class RedirectControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(new RedirectController(redirectService)).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(new RedirectController(redirectService))
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
     @Test
@@ -40,9 +43,14 @@ class RedirectControllerTest {
 
     @Test
     void redirectReturns404ForUnknownCode() throws Exception {
-        when(redirectService.redirect("abc1234")).thenThrow(new ShortCodeNotFoundException("abc1234"));
+        when(redirectService.redirect("abc1234")).thenThrow(new LinkNotFoundException("abc1234"));
 
         mockMvc.perform(get("/abc1234").accept(MediaType.ALL))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(header().string("Content-Type", org.hamcrest.Matchers.containsString("application/problem+json")))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.status").value(404))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.title").value("Not Found"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.detail").value("Short code not found: abc1234"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.instance").value("/abc1234"));
     }
 }

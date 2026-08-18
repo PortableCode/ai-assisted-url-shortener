@@ -367,3 +367,60 @@ Approved.
 
 ---
 
+## AI-009 — Greenfield Backend Quality Baseline
+
+### Tool
+GitHub Copilot Chat
+
+### Intent
+Finish the greenfield backend quality baseline.
+
+### Context
+Existing greenfield backend with create, redirect, metadata, analytics,
+and hard-delete APIs already implemented, requiring centralized API error
+handling, OpenAPI exposure, focused test cleanup, and a final skeptical review.
+
+### AI contribution
+Copilot proposed the centralized error-handling plan, OpenAPI configuration,
+test-gap review, and a skeptical greenfield readiness review after
+implementation.
+
+### Engineer decisions
+
+Accepted:
+- RFC 9457 `ProblemDetail`
+- Centralized `@RestControllerAdvice`
+- Single not-found exception shared by link and redirect flows
+- `springdoc` 3.x for Spring Boot 4
+- Selective high-value tests rather than 100% coverage
+
+Modified:
+- Replaced initial framework-specific OpenAPI smoke-test ideas with a simpler
+  real HTTP smoke test against `/swagger-ui/index.html` and `/v3/api-docs`
+  after Spring Boot 4 test-support compatibility issues appeared in this project
+- Kept OpenAPI annotations concise and endpoint-focused instead of adding
+  verbose field-level documentation
+
+Rejected:
+- Low-value tests
+- A new custom error abstraction beyond Spring's built-in `ProblemDetail`
+  facilities
+- Unrelated refactors
+
+### Rationale
+This checkpoint needed consistent API behavior, evaluator-friendly API
+documentation, and targeted validation without expanding scope or adding
+infrastructure beyond what the greenfield backend already required.
+
+### Validation
+- `./mvnw clean test` → BUILD SUCCESS
+- Swagger UI → loads
+- `/v3/api-docs` → 200
+- Validation → standardized 400
+- Unknown link → standardized 404
+
+### Engineer sign-off
+Approved.
+
+---
+

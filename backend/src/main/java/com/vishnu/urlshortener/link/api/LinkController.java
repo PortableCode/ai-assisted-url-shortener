@@ -1,15 +1,13 @@
 package com.vishnu.urlshortener.link.api;
 
-import com.vishnu.urlshortener.link.application.InvalidOriginalUrlException;
 import com.vishnu.urlshortener.link.application.LinkService;
-import com.vishnu.urlshortener.link.application.ShortCodeGenerationException;
 import com.vishnu.urlshortener.link.domain.Link;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +29,12 @@ public class LinkController {
         this.linkService = linkService;
     }
 
+    @Operation(summary = "Create a short link")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Short link created"),
+            @ApiResponse(responseCode = "400", description = "Invalid request"),
+            @ApiResponse(responseCode = "500", description = "Short-code generation failed")
+    })
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<CreateLinkResponse> createLink(@Valid @RequestBody CreateLinkRequest request) {
         Link link = linkService.createLink(request.originalUrl());
@@ -49,34 +53,36 @@ public class LinkController {
         return ResponseEntity.created(URI.create(shortUrl)).body(response);
     }
 
-
+    @Operation(summary = "Get link metadata")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Link metadata returned"),
+            @ApiResponse(responseCode = "404", description = "Short code not found")
+    })
     @GetMapping("/{shortCode:[a-zA-Z0-9]{7}}")
     public ResponseEntity<LinkMetadataResponse> getLinkMetadata(@PathVariable String shortCode) {
         Link link = linkService.getLinkMetadata(shortCode);
         return ResponseEntity.ok(new LinkMetadataResponse(link.getShortCode(), link.getOriginalUrl(), link.getCreatedAt()));
     }
 
+    @Operation(summary = "Get aggregate link analytics")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Link analytics returned"),
+            @ApiResponse(responseCode = "404", description = "Short code not found")
+    })
     @GetMapping("/{shortCode:[a-zA-Z0-9]{7}}/analytics")
     public ResponseEntity<LinkAnalyticsResponse> getLinkAnalytics(@PathVariable String shortCode) {
         Link link = linkService.getLinkAnalytics(shortCode);
         return ResponseEntity.ok(new LinkAnalyticsResponse(link.getShortCode(), link.getClickCount(), link.getLastAccessedAt()));
     }
 
+    @Operation(summary = "Delete a short link")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Link deleted"),
+            @ApiResponse(responseCode = "404", description = "Short code not found")
+    })
     @DeleteMapping("/{shortCode:[a-zA-Z0-9]{7}}")
     public ResponseEntity<Void> deleteLink(@PathVariable String shortCode) {
         linkService.deleteLink(shortCode);
         return ResponseEntity.noContent().build();
-    }
-
-    @ExceptionHandler(InvalidOriginalUrlException.class)
-    public ResponseEntity<ProblemDetail> handleInvalidOriginalUrl(InvalidOriginalUrlException ex) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
-        return ResponseEntity.badRequest().body(problemDetail);
-    }
-
-    @ExceptionHandler(ShortCodeGenerationException.class)
-    public ResponseEntity<ProblemDetail> handleShortCodeGenerationFailure(ShortCodeGenerationException ex) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problemDetail);
     }
 }

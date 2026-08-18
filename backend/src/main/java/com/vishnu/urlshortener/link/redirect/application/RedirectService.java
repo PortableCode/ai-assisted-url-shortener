@@ -1,5 +1,6 @@
 package com.vishnu.urlshortener.link.redirect.application;
 
+import com.vishnu.urlshortener.link.application.LinkNotFoundException;
 import com.vishnu.urlshortener.link.domain.Link;
 import com.vishnu.urlshortener.link.persistence.LinkRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 @Service
@@ -35,12 +35,12 @@ public class RedirectService {
         validateShortCode(shortCode);
 
         Link link = linkRepository.findByShortCode(shortCode)
-                .orElseThrow(() -> new ShortCodeNotFoundException(shortCode));
+                .orElseThrow(() -> new LinkNotFoundException(shortCode));
 
         Instant accessedAt = Instant.now(clock);
         int updatedRows = linkRepository.incrementAccessStats(shortCode, accessedAt);
         if (updatedRows == 0) {
-            throw new ShortCodeNotFoundException(shortCode);
+            throw new LinkNotFoundException(shortCode);
         }
 
         return link.getOriginalUrl();
@@ -48,7 +48,7 @@ public class RedirectService {
 
     private void validateShortCode(String shortCode) {
         if (shortCode == null || !SHORT_CODE_PATTERN.matcher(shortCode).matches()) {
-            throw new ShortCodeNotFoundException(String.valueOf(shortCode));
+            throw new LinkNotFoundException(String.valueOf(shortCode));
         }
     }
 }

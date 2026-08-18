@@ -1,8 +1,11 @@
 package com.vishnu.urlshortener.link.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vishnu.urlshortener.common.exception.GlobalExceptionHandler;
+import com.vishnu.urlshortener.link.application.InvalidOriginalUrlException;
 import com.vishnu.urlshortener.link.application.LinkNotFoundException;
 import com.vishnu.urlshortener.link.application.LinkService;
+import com.vishnu.urlshortener.link.application.ShortCodeGenerationException;
 import com.vishnu.urlshortener.link.domain.Link;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,6 +45,7 @@ class LinkControllerTest {
         validator.afterPropertiesSet();
 
         mockMvc = MockMvcBuilders.standaloneSetup(new LinkController(linkService))
+                .setControllerAdvice(new GlobalExceptionHandler())
                 .setValidator(validator)
                 .build();
         objectMapper = new ObjectMapper().findAndRegisterModules();
@@ -101,7 +105,11 @@ class LinkControllerTest {
         when(linkService.getLinkMetadata("abc1234")).thenThrow(new LinkNotFoundException("abc1234"));
 
         mockMvc.perform(get("/api/v1/links/abc1234"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("Not Found"))
+                .andExpect(jsonPath("$.detail").value("Short code not found: abc1234"))
+                .andExpect(jsonPath("$.instance").value("/api/v1/links/abc1234"));
     }
 
     @Test
@@ -109,7 +117,11 @@ class LinkControllerTest {
         when(linkService.getLinkAnalytics("abc1234")).thenThrow(new LinkNotFoundException("abc1234"));
 
         mockMvc.perform(get("/api/v1/links/abc1234/analytics"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("Not Found"))
+                .andExpect(jsonPath("$.detail").value("Short code not found: abc1234"))
+                .andExpect(jsonPath("$.instance").value("/api/v1/links/abc1234/analytics"));
     }
 
     @Test
@@ -117,7 +129,11 @@ class LinkControllerTest {
         doThrow(new LinkNotFoundException("abc1234")).when(linkService).deleteLink("abc1234");
 
         mockMvc.perform(delete("/api/v1/links/abc1234"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.title").value("Not Found"))
+                .andExpect(jsonPath("$.detail").value("Short code not found: abc1234"))
+                .andExpect(jsonPath("$.instance").value("/api/v1/links/abc1234"));
     }
 
     @Test
@@ -125,8 +141,53 @@ class LinkControllerTest {
         mockMvc.perform(post("/api/v1/links")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new CreateLinkRequest("   "))))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.detail").value("Request validation failed."))
+                .andExpect(jsonPath("$.instance").value("/api/v1/links"))
+                .andExpect(jsonPath("$.errors.originalUrl").value("originalUrl must not be blank"));
 
         verifyNoInteractions(linkService);
+    }
+
+    @Test
+    void createLinkReturnsBadRequestProblemDetailForInvalidOriginalUrl() throws Exception {
+        when(linkService.createLink("ftp://example.com")).thenThrow(new InvalidOriginalUrlException("originalUrl must use http or https"));
+
+        mockMvc.perform(post("/api/v1/links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreateLinkRequest("ftp://example.com"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.detail").value("originalUrl must use http or https"))
+                .andExpect(jsonPath("$.instance").value("/api/v1/links"));
+    }
+
+    @Test
+    void createLinkReturnsBadRequestProblemDetailForMalformedJson() throws Exception {
+        mockMvc.perform(post("/api/v1/links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.detail").value("Malformed JSON request."))
+                .andExpect(jsonPath("$.instance").value("/api/v1/links"));
+    }
+
+    @Test
+    void createLinkReturnsInternalServerErrorProblemDetailForShortCodeGenerationFailure() throws Exception {
+        when(linkService.createLink("https://example.com")).thenThrow(new ShortCodeGenerationException("Unable to generate a unique short code after 5 attempts", null));
+
+        mockMvc.perform(post("/api/v1/links")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreateLinkRequest("https://example.com"))))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.status").value(500))
+                .andExpect(jsonPath("$.title").value("Internal Server Error"))
+                .andExpect(jsonPath("$.detail").value("Unable to generate a short code."))
+                .andExpect(jsonPath("$.instance").value("/api/v1/links"));
     }
 }
